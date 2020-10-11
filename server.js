@@ -2,6 +2,13 @@ let express = require("express");
 let request = require("request");
 let querystring = require("querystring");
 let path = require("path");
+require("dotenv").config();
+
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const REDIRECT_URI =
+  process.env.REDIRECT_URI || "http://localhost:8888/callback";
+const FRONTEND_URI = process.env.FRONTEND_URI || "http://localhost:3000";
 
 const app = express();
 
@@ -16,14 +23,12 @@ app.get("/login", function (req, res) {
     "https://accounts.spotify.com/authorize?" +
       querystring.stringify({
         response_type: "code",
-        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_id: SPOTIFY_CLIENT_ID,
         scope: "user-read-private user-read-email",
-        redirect_uri,
+        redirect_uri: REDIRECT_URI,
       })
   );
 });
-
-let redirect_uri = process.env.REDIRECT_URI || "http://localhost:8888/callback";
 
 app.get("/callback", function (req, res) {
   let code = req.query.code || null;
@@ -31,25 +36,23 @@ app.get("/callback", function (req, res) {
     url: "https://accounts.spotify.com/api/token",
     form: {
       code: code,
-      redirect_uri,
+      redirect_uri: REDIRECT_URI,
       grant_type: "authorization_code",
     },
     headers: {
       Authorization:
         "Basic " +
-        new Buffer(
-          process.env.SPOTIFY_CLIENT_ID +
-            ":" +
-            process.env.SPOTIFY_CLIENT_SECRET
-        ).toString("base64"),
+        new Buffer(SPOTIFY_CLIENT_ID + ":" + SPOTIFY_CLIENT_SECRET).toString(
+          "base64"
+        ),
     },
     json: true,
   };
   request.post(authOptions, function (error, response, body) {
     var access_token = body.access_token;
-    let uri = process.env.FRONTEND_URI || "http://localhost:3000";
+    let uri = FRONTEND_URI;
     res.redirect(uri + "?access_token=" + access_token);
   });
 });
 
-app.listen(process.env.PORT || 8080);
+app.listen(process.env.PORT || 8888);
